@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
 
 import hudson.util.IOException2;
 import jenkins.model.Jenkins;
@@ -43,6 +44,13 @@ public class BuildTimeoutWrapper extends BuildWrapper {
     
     public static long MINIMUM_TIMEOUT_MILLISECONDS = Long.getLong(BuildTimeoutWrapper.class.getName()+ ".MINIMUM_TIMEOUT_MILLISECONDS", 3 * 60 * 1000);
 
+    /**
+     * Timer to watch timeouts.
+     * BuildTimeoutWrapper used {@link Trigger#timer} till 1.14,
+     * but there are cases that {@link Trigger#timer} gets broken for some reasons.
+     * (SEE JENKINS-13666).
+     */
+    private static Timer timer = new Timer("Timer for BuildTimeoutWrapper");
 
     private /* final */ BuildTimeOutStrategy strategy;
     private final String timeoutEnvVar;
@@ -176,7 +184,7 @@ public class BuildTimeoutWrapper extends BuildWrapper {
                     task.cancel();
                 }
                 task = new TimeoutTimerTask();
-                Trigger.timer.schedule(task, effectiveTimeout);
+                timer.schedule(task, effectiveTimeout);
             }
 
             public synchronized void rescheduleIfScheduled() {
